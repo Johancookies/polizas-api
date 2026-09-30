@@ -1,14 +1,17 @@
 package com.bolivar.seguros.polizas.controller;
 
+import com.bolivar.seguros.polizas.dto.CreatePolicyRequest;
+import com.bolivar.seguros.polizas.dto.CreateRiskRequest;
 import com.bolivar.seguros.polizas.dto.PolicyResponse;
 import com.bolivar.seguros.polizas.dto.RiskResponse;
 import com.bolivar.seguros.polizas.model.PolicyStatus;
 import com.bolivar.seguros.polizas.model.PolicyType;
-import com.bolivar.seguros.polizas.model.Risk;
 import com.bolivar.seguros.polizas.service.PolicyService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,11 +26,23 @@ public class PolicyController {
     private final PolicyService policyService;
 
     @GetMapping
-    @Operation(summary = "List all policies", description = "Filters by type and status optionally")
+    @Operation(summary = "List all policies", description = "Filters by type (INDIVIDUAL, COLECTIVA) and status (ACTIVA, RENOVADA, CANCELADA) optionally")
     public ResponseEntity<List<PolicyResponse>> getPolicies(
             @RequestParam(required = false) PolicyType tipo,
             @RequestParam(required = false) PolicyStatus estado) {
         return ResponseEntity.ok(policyService.listPolicies(tipo, estado));
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Get policy by ID", description = "Retrieves policy details and its associated risks")
+    public ResponseEntity<PolicyResponse> getPolicyById(@PathVariable Long id) {
+        return ResponseEntity.ok(policyService.getPolicyById(id));
+    }
+
+    @PostMapping
+    @Operation(summary = "Create a new policy", description = "Creates a policy (INDIVIDUAL max 1 risk, COLECTIVA N risks)")
+    public ResponseEntity<PolicyResponse> createPolicy(@Valid @RequestBody CreatePolicyRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(policyService.createPolicy(request));
     }
 
     @GetMapping("/{id}/riesgos")
@@ -37,7 +52,7 @@ public class PolicyController {
     }
 
     @PostMapping("/{id}/renovar")
-    @Operation(summary = "Renew a policy", description = "Increments premium by IPC and changes state to RENOVADA")
+    @Operation(summary = "Renew a policy", description = "Increments premium by IPC (5%), extends validity period and sets state to RENOVADA")
     public ResponseEntity<PolicyResponse> renewPolicy(@PathVariable Long id) {
         return ResponseEntity.ok(policyService.renewPolicy(id));
     }
@@ -50,7 +65,7 @@ public class PolicyController {
 
     @PostMapping("/{id}/riesgos")
     @Operation(summary = "Add a risk to a policy", description = "Only allowed for COLECTIVA policies")
-    public ResponseEntity<RiskResponse> addRisk(@PathVariable Long id, @RequestBody Risk risk) {
-        return ResponseEntity.ok(policyService.addRisk(id, risk));
+    public ResponseEntity<RiskResponse> addRisk(@PathVariable Long id, @Valid @RequestBody CreateRiskRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(policyService.addRisk(id, request));
     }
 }

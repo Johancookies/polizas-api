@@ -13,10 +13,31 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleResourceNotFoundException(ResourceNotFoundException ex) {
+        Map<String, String> response = new HashMap<>();
+        response.put("error", "Recurso no encontrado");
+        response.put("detalle", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
+
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<Map<String, String>> handleBusinessException(BusinessException ex) {
         Map<String, String> response = new HashMap<>();
         response.put("error", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    @ExceptionHandler({
+            MethodArgumentNotValidException.class, 
+            IllegalArgumentException.class, 
+            HttpMessageNotReadableException.class,
+            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class
+    })
+    public ResponseEntity<Map<String, String>> handleValidationExceptions(Exception ex) {
+        Map<String, String> response = new HashMap<>();
+        response.put("error", "Error de validación en la petición");
+        response.put("detalle", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
@@ -26,13 +47,5 @@ public class GlobalExceptionHandler {
         response.put("error", "Error interno del servidor");
         response.put("detalle", ex.getMessage());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-    }
-
-    @ExceptionHandler({MethodArgumentNotValidException.class, IllegalArgumentException.class, HttpMessageNotReadableException.class})
-    public ResponseEntity<Map<String, String>> handleValidationExceptions(Exception ex) {
-        Map<String, String> response = new HashMap<>();
-        response.put("error", "Error de validación en la petición");
-        response.put("detalle", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 }

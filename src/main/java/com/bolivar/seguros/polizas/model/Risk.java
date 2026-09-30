@@ -1,6 +1,8 @@
 package com.bolivar.seguros.polizas.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -23,9 +25,13 @@ public class Risk {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @JsonProperty("descripcion")
+    @JsonAlias({"description"})
     @Column(name = "descripcion", nullable = false)
     private String description;
 
+    @JsonProperty("estado")
+    @JsonAlias({"status"})
     @Column(name = "estado", nullable = false)
     private String status; // ACTIVO, CANCELADO
 

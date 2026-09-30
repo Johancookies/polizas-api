@@ -2,6 +2,7 @@ package com.bolivar.seguros.polizas.dto;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,13 +12,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CoreEventRequest {
+public class CreateRiskRequest {
 
-    @JsonProperty("evento")
-    @JsonAlias({"event"})
-    private String event;
-    
-    @JsonProperty("polizaId")
-    @JsonAlias({"policyId", "poliza_id"})
-    private Long policyId;
+    @NotBlank(message = "La descripción del riesgo no puede estar vacía")
+    @JsonProperty("descripcion")
+    @JsonAlias({"description"})
+    private String description;
 }

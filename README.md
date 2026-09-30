@@ -1,73 +1,121 @@
-# Policy Management API
+# Policy Management API - Seguros Bolívar
 
 ![Java](https://img.shields.io/badge/Java-21_LTS-blue.svg)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.3.4-brightgreen.svg)
 ![Build](https://img.shields.io/badge/build-passing-brightgreen.svg)
 
-A robust, enterprise-grade RESTful API built with **Spring Boot 3** and **Java 21** to manage insurance policies and their associated risks. The service employs a layered architecture and asynchronous event-driven mechanisms for third-party integrations.
+Una API RESTful empresarial y robusta construida con **Spring Boot 3.3.4** y **Java 21** para la gestión del ciclo de vida de pólizas de arrendamiento (Individuales y Colectivas) y sus riesgos asociados, con integración asíncrona hacia el sistema CORE transaccional legado.
 
-## 🚀 Features
+---
 
-- **Policy Lifecycle Management:** Create, list, renew, and cancel policies.
-- **Risk Management:** Attach and manage specific risks (e.g., Fire, Liability) to collective policies.
-- **Financial Calculations:** Automated IPC (Consumer Price Index) adjustments upon policy renewal.
-- **Event-Driven Integration:** Asynchronous architecture to decouple internal logic from legacy CORE system notifications.
-- **Security:** API Key-based access control via custom interceptors.
-- **Observability:** JPA Auditing enabled for precise tracking of record creations and updates.
+## 🚀 Características y Reglas de Negocio Implementadas
 
-## 🏗️ Architecture & Patterns
+- **Gestión del Ciclo de Vida:** Creación (`POST /polizas`), consulta individual (`GET /polizas/{id}`), filtrado (`GET /polizas`), renovación (`POST /polizas/{id}/renovar`) y cancelación (`POST /polizas/{id}/cancelar`).
+- **Gestión de Riesgos:** Agregar riesgos a pólizas colectivas (`POST /polizas/{id}/riesgos`) y cancelación individual de riesgos (`POST /riesgos/{id}/cancelar`).
+- **Regla Esencial 1:** Una póliza individual solo puede tener 1 riesgo asociado. Agregar riesgos vía endpoint solo está permitido para pólizas de tipo `COLECTIVA`.
+- **Regla Esencial 2:** No se puede renovar una póliza cancelada (retorna `400 Bad Request`).
+- **Regla Esencial 3:** La cancelación de una póliza cancela en cascada todos sus riesgos asociados.
+- **Ajuste Financiero por IPC:** En la renovación de póliza, el canon y la prima se incrementan en +5% IPC con redondeo financiero a dos decimales (`RoundingMode.HALF_UP`) y se extiende la vigencia por el período inicial.
+- **Integración Asíncrona con el CORE Legado (`@Async`):** Cada operación que modifique estados emite un evento desacoplado que consume el endpoint mock de edición (`POST /core-mock/evento`) sin bloquear el hilo HTTP ni comprometer la disponibilidad.
+- **Seguridad:** Control de acceso mediante interceptor HTTP que valida el header obligatorio `x.api-key: 123456` (con soporte alternativo para `api-key: 123456`).
+- **Manejo Centralizado de Excepciones:** `@ControllerAdvice` con respuestas JSON claras ante violaciones de negocio (400), recursos no encontrados (404) y errores de validación.
 
-- **Layered Architecture:** Clear separation of concerns (Controllers, Services, Repositories, Models).
-- **DTO Pattern:** Entities are strictly isolated from the presentation layer to avoid data leakage and `LazyInitializationException` issues.
-- **Asynchronous Processing (`@Async`):** Integration with the legacy CORE system is handled asynchronously using Spring's `ApplicationEventPublisher`, ensuring non-blocking HTTP responses.
-- **Global Exception Handling:** Centralized `@ControllerAdvice` to gracefully handle business rule violations and return standard JSON errors.
+---
 
-## 🛠️ Tech Stack
+## 🛠️ Stack Tecnológico
 
-- **Core:** Java 21 LTS, Spring Boot 3.3.4
-- **Persistence:** Spring Data JPA, H2 In-Memory Database
-- **Documentation:** OpenAPI 3 / Swagger UI
-- **Tooling:** Maven Wrapper, Lombok
+- **Lenguaje:** Java 21 LTS
+- **Framework:** Spring Boot 3.3.4
+- **Persistencia:** Spring Data JPA, H2 In-Memory Database
+- **Documentación Interactiva:** OpenAPI 3 / Swagger UI (`springdoc-openapi`)
+- **Herramientas:** Maven Wrapper (`mvnw`), Lombok
 
-## ⚙️ Getting Started
+---
 
-### Prerequisites
-- JDK 21+ installed on your machine.
-- Maven (Optional, the project includes `mvnw`).
+## ⚙️ Cómo Ejecutar el Proyecto en Local
 
-### Running Locally
+### Prerrequisitos
+- JDK 21+ instalado en el equipo.
+- Configurar la variable `JAVA_HOME` apuntando al JDK 21:
+  ```bash
+  # En macOS (con Homebrew):
+  export JAVA_HOME=/opt/homebrew/opt/openjdk@21
+  export PATH="$JAVA_HOME/bin:$PATH"
+  ```
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-username/polizas-api.git
-   cd polizas-api
-   ```
+### Inicio de la Aplicación
+```bash
+./mvnw spring-boot:run
+```
+La aplicación iniciará en `http://localhost:8080`. La base de datos H2 se inicializa y precarga automáticamente con datos semilla desde `data.sql`.
 
-2. Start the application using the Maven wrapper:
-   ```bash
-   ./mvnw spring-boot:run
-   ```
+---
 
-3. The server will start on `http://localhost:8080`.
-   *Note: The in-memory database will be automatically seeded with sample data on startup.*
+## 📚 Documentación Interactiva (Swagger UI)
 
-## 📚 API Documentation (Swagger)
-
-This project integrates **Springdoc OpenAPI**. Once the application is running, you can interact with the API documentation through the Swagger UI:
+Una vez en ejecución, puedes interactuar y probar visualmente todos los endpoints:
 
 👉 **[Swagger UI: http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)**
+👉 **[OpenAPI JSON: http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)**
 
-## 🔒 Security
+*Nota: En Swagger UI haz clic en el botón **"Authorize"** e introduce `123456` para ejecutar peticiones directamente desde el explorador.*
 
-All endpoints are secured. You must include the following header in your HTTP requests:
+---
+
+## 🔒 Autenticación y Seguridad
+
+Todos los endpoints transaccionales exigen el header obligatorio:
 ```http
-api-key: 123456
+x.api-key: 123456
+```
+*(También se admite `api-key: 123456`). Las rutas de documentación Swagger UI y consola H2 son públicas para facilitar la revisión.*
+
+---
+
+## 🧪 Pruebas Automatizadas
+
+El proyecto cuenta con una suite completa de **pruebas unitarias** (`PolicyServiceTest`) y **pruebas de integración web** (`PolicyControllerIntegrationTest`) con `MockMvc` cubriendo seguridad, cálculo de IPC, extensión de fechas y todas las reglas de negocio.
+
+Para ejecutar todas las pruebas:
+```bash
+./mvnw clean test
 ```
 
-## 🧪 Testing
+---
 
-The project includes unit tests for the core business logic (Services) and integration tests.
-To run the test suite:
+## 📋 Ejemplos Rápidos con cURL
+
 ```bash
-./mvnw test
+# 1. Listar todas las pólizas
+curl -i -H "x.api-key: 123456" http://localhost:8080/polizas
+
+# 2. Filtrar pólizas por tipo y estado (soporta mayúsculas y minúsculas)
+curl -i -H "x.api-key: 123456" "http://localhost:8080/polizas?tipo=individual&estado=activa"
+
+# 3. Renovar una póliza activa (+5% IPC y extiende vigencia)
+curl -i -X POST -H "x.api-key: 123456" http://localhost:8080/polizas/1/renovar
+
+# 4. Intentar renovar una póliza cancelada (retorna 400 Bad Request)
+curl -i -X POST -H "x.api-key: 123456" http://localhost:8080/polizas/3/renovar
+
+# 5. Agregar riesgo a póliza colectiva
+curl -i -X POST -H "x.api-key: 123456" -H "Content-Type: application/json" \
+  -d '{"descripcion": "Riesgo de Terremoto"}' \
+  http://localhost:8080/polizas/2/riesgos
+
+# 6. Intentar agregar riesgo a póliza individual (retorna 400 Bad Request)
+curl -i -X POST -H "x.api-key: 123456" -H "Content-Type: application/json" \
+  -d '{"descripcion": "Riesgo no permitido"}' \
+  http://localhost:8080/polizas/1/riesgos
+
+# 7. Cancelar póliza y sus riesgos en cascada
+curl -i -X POST -H "x.api-key: 123456" http://localhost:8080/polizas/2/cancelar
+
+# 8. Cancelar un riesgo específico
+curl -i -X POST -H "x.api-key: 123456" http://localhost:8080/riesgos/1/cancelar
+
+# 9. Endpoint Mock del CORE
+curl -i -X POST -H "x.api-key: 123456" -H "Content-Type: application/json" \
+  -d '{"evento": "ACTUALIZACION", "polizaId": 555}' \
+  http://localhost:8080/core-mock/evento
 ```

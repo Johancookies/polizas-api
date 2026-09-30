@@ -9,18 +9,30 @@ import org.springframework.web.servlet.HandlerInterceptor;
 @Component
 public class ApiKeyInterceptor implements HandlerInterceptor {
 
-    private static final String API_KEY_HEADER = "api-key";
     private static final String API_KEY_VALUE = "123456";
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        String apiKey = request.getHeader(API_KEY_HEADER);
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            return true;
+        }
+
+        String apiKey = request.getHeader("x.api-key");
+        if (apiKey == null) {
+            apiKey = request.getHeader("x-api-key");
+        }
+        if (apiKey == null) {
+            apiKey = request.getHeader("api-key");
+        }
+
         if (API_KEY_VALUE.equals(apiKey)) {
             return true;
         }
         
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
-        response.getWriter().write("No autorizado. api-key invalida o ausente.");
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        response.getWriter().write("{\"error\": \"No autorizado\", \"mensaje\": \"Header de autenticación inválido o ausente. Use 'x.api-key: 123456' o 'api-key: 123456'.\"}");
         return false;
     }
 }
