@@ -16,6 +16,6 @@ public class CreateRiskRequest {
 
     @NotBlank(message = "La descripción del riesgo no puede estar vacía")
     @JsonProperty("descripcion")
-    @JsonAlias({"description"})
+    @JsonAlias({"description", "descripcionRiesgo", "descripcion_riesgo"})
     private String description;
 }
