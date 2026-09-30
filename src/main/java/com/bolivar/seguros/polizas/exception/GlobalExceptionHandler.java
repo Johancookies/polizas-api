@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import java.util.HashMap;
 import java.util.Map;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -24,5 +26,13 @@ public class GlobalExceptionHandler {
         response.put("error", "Error interno del servidor");
         response.put("detalle", ex.getMessage());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+
+    @ExceptionHandler({MethodArgumentNotValidException.class, IllegalArgumentException.class, HttpMessageNotReadableException.class})
+    public ResponseEntity<Map<String, String>> handleValidationExceptions(Exception ex) {
+        Map<String, String> response = new HashMap<>();
+        response.put("error", "Error de validación en la petición");
+        response.put("detalle", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 }

@@ -19,19 +19,19 @@ public class CoreNotificationListener {
                 event.getPolicyId(), event.getEventType());
         
         try {
-            // Simulate network delay to CORE
-            Thread.sleep(1000); 
-            
             CoreEventRequest request = CoreEventRequest.builder()
                     .event(event.getEventType())
                     .policyId(event.getPolicyId())
                     .build();
             
-            logger.info("✅ [ASYNC] Successfully simulated REST call to CORE with payload: {}", request);
+            // Real HTTP call to the local mock endpoint
+            org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
+            restTemplate.postForEntity("http://localhost:8080/core-mock/evento", request, String.class);
             
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            logger.error("❌ [ASYNC] Failed to notify core", e);
+            logger.info("✅ [ASYNC] Successfully invoked CORE MOCK via HTTP with payload: {}", request);
+            
+        } catch (Exception e) {
+            logger.error("❌ [ASYNC] Failed to notify core via HTTP", e);
         }
     }
 }
